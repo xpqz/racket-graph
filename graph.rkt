@@ -1,11 +1,15 @@
 #lang racket
+;;
+;; Naive graph stuff for Racket
+;;
+;; Stefan Kruger (c) 2019
+;;
 
-(require racket/hash)
 (require "priority-queue.rkt")
 
 (provide dijkstra unwind-path prim-mst)
 
-(define-struct node (item cost) #:transparent)
+(struct node (item cost) #:transparent)
 
 (define (unwind-path came-from start end)
   (let loop ([current end] [path '()])
@@ -19,9 +23,12 @@
               #:when (or
                       (not (hash-has-key? cost-so-far elem))
                       (< new-cost (hash-ref cost-so-far elem))))
-    (make-node elem new-cost)))
+    (node elem new-cost)))
 
 (define dijkstra
+  ;; Dijkstra's shortest path algorithm, with a priority queue.
+  ;;
+  ;; See https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm
   (λ (graph #:start start #:end end)
     (let loop ([frontier (make-queue 0 start)]
                [came-from (make-hash (list (cons start #f)))]
@@ -40,6 +47,9 @@
                         (loop frontier came-from cost-so-far))]))]))))
 
 (define (prim-mst graph start)
+  ;; Prim's algorithm for finding the minimum spanning tree of a graph.
+  ;;
+  ;; See https://en.wikipedia.org/wiki/Prim%27s_algorithm
   (let ([edges (make-queue)])
     (for ([(to cost) (in-hash (hash-ref graph start))])
       (push-queue! edges cost (cons start to)))

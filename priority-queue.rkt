@@ -1,11 +1,10 @@
 #lang racket
 
 (require data/heap)
-(require rackunit)
 
 (provide queue-item empty? make-queue pop-queue push-queue!)
 
-(define-struct queue-item (priority value))
+(struct queue-item (priority value))
 
 (define (queue-item<=? x y)
   (<= (queue-item-priority x) (queue-item-priority y)))
@@ -16,7 +15,7 @@
 (define (make-queue . xs)
   (let ([priority-queue (make-heap queue-item<=?)])
     (for ([pair (in-slice 2 xs)])
-      (heap-add! priority-queue (apply make-queue-item pair)))
+      (heap-add! priority-queue (apply queue-item pair)))
     priority-queue))
 
 (define (pop-queue priority-queue)
@@ -25,5 +24,5 @@
     (queue-item-value item)))
 
 (define (push-queue! priority-queue priority value)
-  (heap-add! priority-queue (make-queue-item priority value)))
+  (heap-add! priority-queue (queue-item priority value)))
 
