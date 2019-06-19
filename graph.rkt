@@ -4,12 +4,48 @@
 ;;
 ;; Stefan Kruger (c) 2019
 ;;
-
 (require "priority-queue.rkt")
 
-(provide dijkstra unwind-path prim-mst)
+(provide
+ make-graph
+ edge
+ make-edge
+ dijkstra
+ unwind-path
+ prim-mst)
 
 (struct node (item cost) #:transparent)
+(struct edge (start end weight) #:transparent)
+
+(define make-edge
+  (λ (start end #:weight [weight 0])
+    (edge start end weight)))
+
+(struct graph ([nodes #:mutable] [edges #:mutable]) #:transparent)
+
+(define (add-edge! g edge)
+  (let ([start (edge-start edge)]
+        [end (edge-end edge)]
+        [weight (edge-weight edge)]
+        [edges (graph-edges g)])
+    (for ([n (list start end)])
+      (unless (set-member? (graph-nodes g) n) (set-add! (graph-nodes g) n)))
+    
+    (cond [(not (hash-has-key? edges start))
+           (hash-set! edges start (make-hash (list (cons end weight))))]
+          [else
+           (hash-set! (hash-ref edges start) end weight)])
+
+    (cond [(not (hash-has-key? edges end))
+           (hash-set! edges end (make-hash (list (cons start weight))))]
+          [else
+           (hash-set! (hash-ref edges end) start weight)])))
+
+(define (make-graph . xs)
+  (let ([g (graph (mutable-set) (make-hash))])
+    (for ([edge xs])
+      (add-edge! g edge))
+    g))
 
 (define (unwind-path came-from start end)
   (let loop ([current end] [path '()])
@@ -18,7 +54,7 @@
            (loop (hash-ref came-from current) (cons current path))])))
 
 (define (frontier-nodes graph cost-so-far current)
-  (for*/list ([(elem cost) (in-hash (hash-ref graph current))]
+  (for*/list ([(elem cost) (in-hash (hash-ref (graph-edges graph) current))]
               [new-cost (in-value (+ (hash-ref cost-so-far current) cost))]
               #:when (or
                       (not (hash-has-key? cost-so-far elem))
@@ -51,7 +87,7 @@
   ;;
   ;; See https://en.wikipedia.org/wiki/Prim%27s_algorithm
   (let ([edges (make-queue)])
-    (for ([(to cost) (in-hash (hash-ref graph start))])
+    (for ([(to cost) (in-hash (hash-ref (graph-edges graph) start))])
       (push-queue! edges cost (cons start to)))
     
     (let loop ([mst (make-hash)] [edges edges] [visited (mutable-set start)])
@@ -67,7 +103,7 @@
                    (hash-set! mst from (mutable-set)))
                  (set-add! (hash-ref mst from) to))
 
-               (for ([(next cost) (in-hash (hash-ref graph to))])
+               (for ([(next cost) (in-hash (hash-ref (graph-edges graph) to))])
                  (unless (set-member? visited next)
                    (push-queue! edges cost (cons to next))))
                

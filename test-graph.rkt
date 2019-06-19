@@ -16,59 +16,65 @@
  
    (test-case
     "Simple grid-like graph"
-    (let ([g (hash
-              'A (hash 'C 1 'B 1 'F 1)
-              'B (hash 'A 1 'C 1 'D 1)
-              'C (hash 'A 1 'B 1 'D 1)
-              'D (hash 'B 1 'E 1)
-              'E (hash 'F 1 'D 1)
-              'F (hash 'A 1 'E 1))])
+    (let ([g (make-graph
+              (edge 'A 'C 1)
+              (edge 'A 'B 1)
+              (edge 'A 'F 1)
+              (edge 'B 'C 1)
+              (edge 'B 'D 1)
+              (edge 'C 'D 1)
+              (edge 'D 'E 1)
+              (edge 'E 'F 1))])
       (check-equal? (unwind-path (dijkstra g #:start 'A #:end 'E) 'A 'E) (list 'A 'F 'E))))
 
    (test-case
     "No path found"
-    (let ([g (hash
-              'A (hash 'C 1 'B 1)
-              'B (hash 'A 1 'C 1 'D 1)
-              'C (hash 'A 1 'B 1 'D 1)
-              'D (hash 'B 1)
-              'E (hash 'F 1)
-              'F (hash 'E 1))])
+    (let ([g (make-graph
+              (edge 'A 'C 1)
+              (edge 'A 'B 1)
+              (edge 'B 'C 1)
+              (edge 'B 'D 1)
+              (edge 'C 'D 1)
+              (edge 'E 'F 1))])
       (check-exn exn:fail? (lambda () (dijkstra g #:start 'A #:end 'E)))))
 
    (test-case
     "Weighted graph"
-    (let ([g (hash
-              'A (hash 'C 9 'B 7 'F 16)
-              'B (hash 'A 7 'C 10 'D 15)
-              'C (hash 'A 9 'B 10 'D 11)
-              'D (hash 'B 15 'E 6)
-              'E (hash 'F 11 'D 6)
-              'F (hash 'A 16 'E 11))])
+    (let ([g (make-graph
+              (edge 'A 'C 9)
+              (edge 'A 'B 7)
+              (edge 'A 'F 16)
+              (edge 'B 'C 10)
+              (edge 'B 'D 15)
+              (edge 'C 'D 11)
+              (edge 'D 'E 6)
+              (edge 'E 'F 11))])
       (check-equal? (unwind-path (dijkstra g #:start 'A #:end 'E) 'A 'E) (list 'A 'C 'D 'E))))
 
    (test-case
-    "Weighted graph"
-    (let* ([g (hash
-              'A (hash 'B 4 'H 8)
-              'B (hash 'A 4 'C 8 'H 11)
-              'C (hash 'B 8 'D 7 'F 4 'I 2)
-              'D (hash 'C 7 'E 9 'F 14)
-              'E (hash 'D 9 'F 10)
-              'F (hash 'C 4 'D 14 'E 10 'G 2)
-              'G (hash 'F 2 'H 1 'I 6)
-              'H (hash 'A 8 'B 11 'G 1 'I 7)
-              'I (hash 'C 2 'H 7 'G 6)
-              )]
+    "Weighted graph MST"
+    (let* ([g (make-graph
+               (edge 'A 'B 4)
+               (edge 'A 'H 8)
+               (edge 'B 'C 8)
+               (edge 'B 'H 11)
+               (edge 'C 'D 7)
+               (edge 'C 'F 4)
+               (edge 'C 'I 2)
+               (edge 'D 'E 9)
+               (edge 'D 'F 14)
+               (edge 'E 'F 10)
+               (edge 'F 'G 2)
+               (edge 'G 'H 1)
+               (edge 'G 'I 6)
+               (edge 'H 'I 7))]
           [expected (mhash
                      'A (mutable-set 'H 'B)
                      'C (mutable-set 'D 'I)
                      'D (mutable-set 'E)
                      'F (mutable-set 'C)
                      'G (mutable-set 'F)
-                     'H (mutable-set 'G))]
-          [actual (prim-mst g 'A)]
-          [is-equal (equal? actual expected)])
-      (check-equal? is-equal #t)))))
+                     'H (mutable-set 'G))])
+      (check-equal? (prim-mst g 'A) expected)))))
 
 (run-tests graph-tests)
