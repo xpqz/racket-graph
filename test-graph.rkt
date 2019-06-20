@@ -13,7 +13,7 @@
 (define graph-tests
   (test-suite
    "Tests for dijkstra [graph.rkt]"
- 
+   
    (test-case
     "Simple grid-like graph"
     (let ([g (make-graph
@@ -75,6 +75,34 @@
                      'F (mutable-set 'C)
                      'G (mutable-set 'F)
                      'H (mutable-set 'G))])
-      (check-equal? (prim-mst g 'A) expected)))))
+      (check-equal? (prim-mst g 'A) expected)))
+
+   (test-case
+    "Breadth-first-search"
+    (let* ([g (make-graph
+              (edge 'Frankfurt 'Mannheim 85)
+              (edge 'Frankfurt 'Wurzburg 217)
+              (edge 'Frankfurt 'Kassel 173)
+              (edge 'Mannheim 'Karlsruhe 80)
+              (edge 'Wurzburg 'Erfurt 186)
+              (edge 'Wurzburg 'Nurnberg 103)
+              (edge 'Nurnberg 'Stuttgart 183)
+              (edge 'Nurnberg 'Munchen 167)
+              (edge 'Kassel 'Munchen 502)
+              (edge 'Karlsruhe 'Augsburg 250)
+              (edge 'Augsburg 'Munchen 84))]
+          [came-from (breadth-first-search g 'Frankfurt)]
+          [expected (mhash
+                     'Augsburg 'Munchen
+                     'Erfurt 'Wurzburg
+                     'Frankfurt #f
+                     'Karlsruhe 'Mannheim
+                     'Kassel 'Frankfurt
+                     'Mannheim 'Frankfurt
+                     'Munchen 'Kassel
+                     'Nurnberg 'Wurzburg
+                     'Stuttgart 'Nurnberg
+                     'Wurzburg 'Frankfurt)])
+      (check-equal? came-from expected)))))
 
 (run-tests graph-tests)

@@ -14,7 +14,8 @@
  make-edge
  dijkstra
  unwind-path
- prim-mst)
+ prim-mst
+ breadth-first-search)
 
 (struct node (item cost) #:transparent)
 (struct edge (start end weight) #:transparent)
@@ -117,19 +118,23 @@
   ;; If no end node given, the returned hash holds the shortest paths from
   ;; the start to every other point in the graph.
   ;;
+  ;; See https://en.wikipedia.org/wiki/Breadth-first_search
+  ;;
   ;; (define came-from (breadth-first-search graph start #:end end)
   ;; (unwind-path came-from start end)
   
   (λ (graph start #:end [end '()])
     (let ([queue (make-queue)])
       (enqueue! queue start)
-      (let loop ([frontier queue] [came-from (make-hash (list (cons start #f)))])
+      (let loop ([frontier queue] [came-from (make-hash (list (cons start #f)))] [visited (mutable-set start)])
         (cond [(queue-empty? queue) came-from]
               [else
                (let ([current (dequeue! frontier)])
                  (cond [(and (not (null? end)) (equal? current end)) came-from]
                        [else
-                        (for ([neighbour (hash-keys (hash-ref graph current))])
-                          (enqueue! frontier neighbour)
-                          (hash-set! came-from neighbour current))
-                        (loop frontier came-from)]))])))))
+                        (for ([neighbour (hash-keys (hash-ref (graph-edges graph) current))])
+                          (unless (set-member? visited neighbour)
+                            (enqueue! frontier neighbour)
+                            (hash-set! came-from neighbour current)
+                            (set-add! visited neighbour)))
+                        (loop frontier came-from visited)]))])))))
