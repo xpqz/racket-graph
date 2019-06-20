@@ -4,7 +4,9 @@
 ;;
 ;; Stefan Kruger (c) 2019
 ;;
-(require "priority-queue.rkt")
+
+(require data/queue)
+(require "heap-queue.rkt")
 
 (provide
  make-graph
@@ -66,18 +68,18 @@
   ;;
   ;; See https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm
   (λ (graph #:start start #:end end)
-    (let loop ([frontier (make-queue 0 start)]
+    (let loop ([frontier (make-heap-queue 0 start)]
                [came-from (make-hash (list (cons start #f)))]
                [cost-so-far (make-hash (list (cons start 0)))])
   
-      (cond [(empty? frontier) (error "No path found")]
+      (cond [(heap-queue-empty? frontier) (error "No path found")]
             [else
-             (let ([current (pop-queue frontier)])
+             (let ([current (pop-heap-queue frontier)])
                (cond [(equal? current end) came-from]
                      [else
                       (let ([nodes (frontier-nodes graph cost-so-far current)])
                         (for ([emt nodes])
-                          (push-queue! frontier (node-cost emt) (node-item emt)))
+                          (push-heap-queue! frontier (node-cost emt) (node-item emt)))
                         (apply hash-set*! came-from (flatten (for/list ([emt nodes]) (cons (node-item emt) current))))
                         (apply hash-set*! cost-so-far (flatten (for/list ([emt nodes]) (cons (node-item emt) (node-cost emt)))))
                         (loop frontier came-from cost-so-far))]))]))))
@@ -86,14 +88,14 @@
   ;; Prim's algorithm for finding the minimum spanning tree of a graph.
   ;;
   ;; See https://en.wikipedia.org/wiki/Prim%27s_algorithm
-  (let ([edges (make-queue)])
+  (let ([edges (make-heap-queue)])
     (for ([(to cost) (in-hash (hash-ref (graph-edges graph) start))])
-      (push-queue! edges cost (cons start to)))
+      (push-heap-queue! edges cost (cons start to)))
     
     (let loop ([mst (make-hash)] [edges edges] [visited (mutable-set start)])
-      (cond [(empty? edges) mst]
+      (cond [(heap-queue-empty? edges) mst]
             [else
-             (let* ([edge (pop-queue edges)]
+             (let* ([edge (pop-heap-queue edges)]
                     [from (car edge)]
                     [to (cdr edge)])
                  
@@ -105,8 +107,29 @@
 
                (for ([(next cost) (in-hash (hash-ref (graph-edges graph) to))])
                  (unless (set-member? visited next)
-                   (push-queue! edges cost (cons to next))))
+                   (push-heap-queue! edges cost (cons to next))))
                
                (loop mst edges visited))]))))
                           
-                 
+
+(define breadth-first-search
+  ;; Breadth-first search with potential early exit. Edge cost not accounted for.
+  ;; If no end node given, the returned hash holds the shortest paths from
+  ;; the start to every other point in the graph.
+  ;;
+  ;; (define came-from (breadth-first-search graph start #:end end)
+  ;; (unwind-path came-from start end)
+  
+  (λ (graph start #:end [end '()])
+    (let ([queue (make-queue)])
+      (enqueue! queue start)
+      (let loop ([frontier queue] [came-from (make-hash (list (cons start #f)))])
+        (cond [(queue-empty? queue) came-from]
+              [else
+               (let ([current (dequeue! frontier)])
+                 (cond [(and (not (null? end)) (equal? current end)) came-from]
+                       [else
+                        (for ([neighbour (hash-keys (hash-ref graph current))])
+                          (enqueue! frontier neighbour)
+                          (hash-set! came-from neighbour current))
+                        (loop frontier came-from)]))])))))
