@@ -6,6 +6,7 @@
 ;;
 
 (require data/queue)
+(require racket/match)
 (require "heap-queue.rkt")
 
 (provide
@@ -97,6 +98,7 @@
                         (apply hash-set*! cost-so-far (flatten (for/list ([emt nodes]) (cons (node-item emt) (node-cost emt)))))
                         (loop frontier came-from cost-so-far))]))]))))
 
+
 (define (prim-mst graph start)
   ;; Prim's algorithm for finding the minimum spanning tree of a graph.
   ;;
@@ -108,10 +110,7 @@
     (let loop ([mst (make-hash)] [edges edges] [visited (mutable-set start)])
       (cond [(heap-queue-empty? edges) mst]
             [else
-             (let* ([edge (pop-heap-queue edges)]
-                    [from (car edge)]
-                    [to (cdr edge)])
-                 
+             (match-let ([(cons from to) (pop-heap-queue edges)])
                (unless (set-member? visited to)
                  (set-add! visited to)
                  (unless (hash-has-key? mst from)
